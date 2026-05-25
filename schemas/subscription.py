@@ -4,6 +4,7 @@ from typing import Optional
 from pydantic import BaseModel
 
 from models.subscription import SubscriptionPlan, SubscriptionStatus
+from schemas.tariff import TariffRead
 
 
 class SubscriptionBase(BaseModel):
@@ -17,10 +18,11 @@ class SubscriptionBase(BaseModel):
 
 
 class SubscriptionCreate(SubscriptionBase):
-    pass
+    tariff_code: Optional[str] = None
 
 
 class SubscriptionUpdate(BaseModel):
+    tariff_code: Optional[str] = None
     plan: Optional[SubscriptionPlan] = None
     start_date: Optional[date] = None
     end_date: Optional[date] = None
@@ -34,7 +36,9 @@ class SubscriptionUpdate(BaseModel):
 class SubscriptionRead(SubscriptionBase):
     id: int
     client_id: int
+    tariff_code: Optional[str] = None
     status: SubscriptionStatus
+    tariff: Optional[TariffRead] = None
     created_at: datetime
     updated_at: datetime
 

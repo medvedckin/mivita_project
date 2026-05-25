@@ -6,6 +6,7 @@ from .dish import Dish
 from .dish_ingredient import DishIngredient
 from .order import Order
 from .order_dish import OrderDish
+from .tariff import Tariff
 
 __all__ = [
     "User",
@@ -16,4 +17,5 @@ __all__ = [
     "DishIngredient",
     "Order",
     "OrderDish",
+    "Tariff",
 ]

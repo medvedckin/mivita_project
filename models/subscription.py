@@ -27,6 +27,7 @@ class Subscription(Base):
     client_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("clients.id"), nullable=False
     )
+    tariff_code: Mapped[str] = mapped_column(String(10), nullable=True)
     plan: Mapped[SubscriptionPlan] = mapped_column(
         Enum(SubscriptionPlan), nullable=False
     )

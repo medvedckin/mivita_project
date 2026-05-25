@@ -5,6 +5,7 @@ from database import get_db
 from dependencies.auth import require_role
 from models.client import Client
 from models.subscription import Subscription
+from models.tariff import Tariff
 from models.user import UserRole
 from schemas.subscription import (
     SubscriptionCreate,
@@ -36,6 +37,12 @@ def _get_subscription_or_404(sub_id: int, db: Session) -> Subscription:
     return sub
 
 
+def _attach_tariff(sub: Subscription, db: Session):
+    if sub.tariff_code:
+        tariff = db.query(Tariff).filter(Tariff.code == sub.tariff_code).first()
+        sub.tariff = tariff
+
+
 @router.get(
     "/clients/{client_id}/subscriptions",
     response_model=list[SubscriptionRead],
@@ -46,11 +53,14 @@ def list_subscriptions(
     current_user=Depends(require_role(UserRole.admin, UserRole.partner)),
 ):
     _get_client_or_404(client_id, db)
-    return (
+    subs = (
         db.query(Subscription)
         .filter(Subscription.client_id == client_id)
         .all()
     )
+    for s in subs:
+        _attach_tariff(s, db)
+    return subs
 
 
 @router.get(
@@ -62,7 +72,9 @@ def get_subscription(
     db: Session = Depends(get_db),
     current_user=Depends(require_role(UserRole.admin, UserRole.partner)),
 ):
-    return _get_subscription_or_404(subscription_id, db)
+    sub = _get_subscription_or_404(subscription_id, db)
+    _attach_tariff(sub, db)
+    return sub
 
 
 @router.post(
@@ -77,10 +89,28 @@ def create_subscription(
     current_user=Depends(require_role(UserRole.admin)),
 ):
     _get_client_or_404(client_id, db)
-    sub = Subscription(client_id=client_id, **data.model_dump())
+    payload = data.model_dump()
+
+    # Auto-fill from tariff if tariff_code provided
+    tariff_code = payload.pop("tariff_code", None)
+    if tariff_code:
+        tariff = db.query(Tariff).filter(Tariff.code == tariff_code).first()
+        if not tariff:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Tariff '{tariff_code}' not found",
+            )
+        payload["tariff_code"] = tariff_code
+        if "price" not in data.model_dump(exclude_unset=True) or not data.price:
+            payload["price"] = float(tariff.price_per_day)
+        if "meals_per_day" not in data.model_dump(exclude_unset=True):
+            payload["meals_per_day"] = tariff.meals_per_day
+
+    sub = Subscription(client_id=client_id, **payload)
     db.add(sub)
     db.commit()
     db.refresh(sub)
+    _attach_tariff(sub, db)
     return sub
 
 
@@ -99,6 +129,7 @@ def update_subscription(
         setattr(sub, key, value)
     db.commit()
     db.refresh(sub)
+    _attach_tariff(sub, db)
     return sub
 
 
@@ -116,4 +147,5 @@ def update_subscription_status(
     sub.status = data.status
     db.commit()
     db.refresh(sub)
+    _attach_tariff(sub, db)
     return sub
