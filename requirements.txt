@@ -20,3 +20,5 @@ python-dotenv==1.0.1
 pydantic-settings==2.3.0
 psycopg2-binary==2.9.12
 alembic==1.13.2
+httpx==0.28.1
+aiogram>=3.18.0

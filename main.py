@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -15,12 +16,14 @@ from routers import (
     menu,
     meta,
     orders,
+    routes,
     subscriptions,
     tariffs,
 )
 from routers.auth import seed_default_users
 from routers.menu import seed_menu_cycle
 from routers.tariffs import seed_tariffs
+from services.seed_route import seed_test_route
 
 
 @asynccontextmanager
@@ -31,9 +34,33 @@ async def lifespan(app: FastAPI):
         seed_tariffs(db)
         seed_default_users(db)
         seed_menu_cycle(db)
+        seed_test_route(db)
     finally:
         db.close()
+
+    bot_task: asyncio.Task | None = None
+    if settings.telegram_bot_token:
+        from services.telegram_bot import init_bot, start_polling
+
+        try:
+            init_bot(settings.telegram_bot_token)
+            bot_task = asyncio.create_task(start_polling())
+            print("Telegram bot starting")
+        except Exception as exc:
+            print(f"Telegram bot init error: {exc}")
+
     yield
+
+    if bot_task and not bot_task.done():
+        bot_task.cancel()
+        try:
+            await bot_task
+        except asyncio.CancelledError:
+            pass
+        from services.telegram_bot import stop_polling
+
+        await stop_polling()
+        print("Telegram bot stopped")
 
 
 app = FastAPI(title="Mivita API", lifespan=lifespan)
@@ -56,4 +83,5 @@ app.include_router(menu.router)
 app.include_router(orders.router)
 app.include_router(subscriptions.router)
 app.include_router(tariffs.router)
+app.include_router(routes.router)
 app.include_router(finance.router)

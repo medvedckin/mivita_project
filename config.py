@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     kitchen_password: str = "kitchen"
     partner_username: str = "partner"
     partner_password: str = "partner"
+    gis2_maps_api_key: str = ""
+    telegram_bot_token: str = ""
 
     class Config:
         env_file = ".env"

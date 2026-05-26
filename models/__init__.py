@@ -8,6 +8,9 @@ from .order import Order
 from .order_dish import OrderDish
 from .tariff import Tariff
 from .menu_cycle import MenuCycle, MenuCycleDay
+from .courier import Courier
+from .route import Route, RoutePoint
+from .telegram_courier import TelegramCourier
 
 __all__ = [
     "User",
@@ -21,4 +24,8 @@ __all__ = [
     "Tariff",
     "MenuCycle",
     "MenuCycleDay",
+    "Courier",
+    "Route",
+    "RoutePoint",
+    "TelegramCourier",
 ]
