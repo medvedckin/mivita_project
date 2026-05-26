@@ -6,6 +6,7 @@ from models.user import UserRole
 class UserRead(BaseModel):
     id: int
     username: str
+    name: str
     role: UserRole
     is_active: bool
 

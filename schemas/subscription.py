@@ -3,32 +3,43 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-from models.subscription import SubscriptionPlan, SubscriptionStatus
+from models.subscription import SubscriptionStatus
 from schemas.tariff import TariffRead
 
 
+class DayOverride(BaseModel):
+    date: str
+    address: Optional[str] = None
+    timeSlot: Optional[str] = None
+    tariff: Optional[str] = None
+    skipped: Optional[bool] = None
+    comment: Optional[str] = None
+
+
+class SubscriptionChange(BaseModel):
+    id: str
+    at: str
+    field: str
+    description: str
+
+
 class SubscriptionBase(BaseModel):
-    plan: SubscriptionPlan
+    tariff_code: str
     start_date: date
-    end_date: Optional[date] = None
-    price: float
-    meals_per_day: int = 1
-    days_of_week: str = "1,2,3,4,5"
+    end_date: date
+    total_price: float = 0
     notes: Optional[str] = None
 
 
 class SubscriptionCreate(SubscriptionBase):
-    tariff_code: Optional[str] = None
+    pass
 
 
 class SubscriptionUpdate(BaseModel):
     tariff_code: Optional[str] = None
-    plan: Optional[SubscriptionPlan] = None
     start_date: Optional[date] = None
     end_date: Optional[date] = None
-    price: Optional[float] = None
-    meals_per_day: Optional[int] = None
-    days_of_week: Optional[str] = None
+    total_price: Optional[float] = None
     notes: Optional[str] = None
     status: Optional[SubscriptionStatus] = None
 
@@ -36,8 +47,9 @@ class SubscriptionUpdate(BaseModel):
 class SubscriptionRead(SubscriptionBase):
     id: int
     client_id: int
-    tariff_code: Optional[str] = None
     status: SubscriptionStatus
+    day_overrides: list[DayOverride] = []
+    change_log: list[SubscriptionChange] = []
     tariff: Optional[TariffRead] = None
     created_at: datetime
     updated_at: datetime

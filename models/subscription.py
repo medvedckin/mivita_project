@@ -1,23 +1,16 @@
 import enum
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, Enum, Float, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Date, DateTime, Enum, Float, ForeignKey, Integer, JSON, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database import Base
 
 
-class SubscriptionPlan(str, enum.Enum):
-    breakfast = "breakfast"
-    lunch = "lunch"
-    dinner = "dinner"
-    full = "full"
-
-
 class SubscriptionStatus(str, enum.Enum):
     active = "active"
     paused = "paused"
-    cancelled = "cancelled"
+    finished = "finished"
 
 
 class Subscription(Base):
@@ -27,18 +20,15 @@ class Subscription(Base):
     client_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("clients.id"), nullable=False
     )
-    tariff_code: Mapped[str] = mapped_column(String(10), nullable=True)
-    plan: Mapped[SubscriptionPlan] = mapped_column(
-        Enum(SubscriptionPlan), nullable=False
-    )
+    tariff_code: Mapped[str] = mapped_column(String(10), nullable=False)
     start_date: Mapped[date] = mapped_column(Date, nullable=False)
-    end_date: Mapped[date] = mapped_column(Date, nullable=True)
+    end_date: Mapped[date] = mapped_column(Date, nullable=False)
     status: Mapped[SubscriptionStatus] = mapped_column(
         Enum(SubscriptionStatus), default=SubscriptionStatus.active, nullable=False
     )
-    price: Mapped[float] = mapped_column(Float, nullable=False)
-    meals_per_day: Mapped[int] = mapped_column(Integer, default=1)
-    days_of_week: Mapped[str] = mapped_column(String(50), default="1,2,3,4,5")  # JSON-like: "1,2,3,4,5,6,7"
+    total_price: Mapped[float] = mapped_column(Float, nullable=False, default=0)
+    day_overrides: Mapped[list] = mapped_column(JSON, default=list)
+    change_log: Mapped[list] = mapped_column(JSON, default=list)
     notes: Mapped[str] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now()

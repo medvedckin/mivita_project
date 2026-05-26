@@ -1,26 +1,30 @@
 import enum
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, Enum, ForeignKey, Integer, String, Text, func
+from sqlalchemy import (
+    Boolean,
+    Date,
+    DateTime,
+    Enum,
+    Float,
+    ForeignKey,
+    Integer,
+    JSON,
+    String,
+    Text,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database import Base
 
 
 class OrderStatus(str, enum.Enum):
-    planned = "planned"
-    in_progress = "in_progress"
-    completed = "completed"
+    draft = "draft"
+    confirmed = "confirmed"
+    in_kitchen = "in_kitchen"
     delivered = "delivered"
     cancelled = "cancelled"
-
-
-class MealType(str, enum.Enum):
-    breakfast = "breakfast"
-    snack = "snack"
-    lunch = "lunch"
-    salad = "salad"
-    dinner = "dinner"
 
 
 class Order(Base):
@@ -34,12 +38,19 @@ class Order(Base):
         Integer, ForeignKey("subscriptions.id"), nullable=True
     )
     order_date: Mapped[date] = mapped_column(Date, nullable=False)
-    meal_type: Mapped[MealType] = mapped_column(
-        Enum(MealType), nullable=True
-    )
+    tariff_code: Mapped[str] = mapped_column(String(10), nullable=False)
     status: Mapped[OrderStatus] = mapped_column(
-        Enum(OrderStatus), default=OrderStatus.planned, nullable=False
+        Enum(OrderStatus), default=OrderStatus.draft, nullable=False
     )
+    meals: Mapped[list] = mapped_column(JSON, default=list)
+    delivery_slot: Mapped[dict] = mapped_column(JSON, default=dict)
+    allergens: Mapped[list] = mapped_column(JSON, default=list)
+    excluded_ingredients: Mapped[list] = mapped_column(JSON, default=list)
+    payment_method: Mapped[str] = mapped_column(String(20), default="transfer")
+    price_total: Mapped[float] = mapped_column(Float, default=0)
+    is_priority: Mapped[bool] = mapped_column(Boolean, default=False)
+    comment: Mapped[str] = mapped_column(Text, nullable=True)
+    locked_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     notes: Mapped[str] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now()
@@ -49,4 +60,4 @@ class Order(Base):
     )
 
     client = relationship("Client")
-    dishes = relationship("OrderDish", back_populates="order")
+    dishes = relationship("OrderDish", back_populates="order", cascade="all, delete-orphan")

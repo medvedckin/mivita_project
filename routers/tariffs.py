@@ -29,7 +29,7 @@ def seed_tariffs(db: Session):
 def list_tariffs(
     db: Session = Depends(get_db),
     current_user=Depends(
-        require_role(UserRole.admin, UserRole.partner, UserRole.cook)
+        require_role(UserRole.admin, UserRole.partner, UserRole.kitchen)
     ),
 ):
     return db.query(Tariff).order_by(Tariff.kcal).all()
@@ -40,7 +40,7 @@ def get_tariff(
     tariff_id: int,
     db: Session = Depends(get_db),
     current_user=Depends(
-        require_role(UserRole.admin, UserRole.partner, UserRole.cook)
+        require_role(UserRole.admin, UserRole.partner, UserRole.kitchen)
     ),
 ):
     tariff = db.query(Tariff).filter(Tariff.id == tariff_id).first()

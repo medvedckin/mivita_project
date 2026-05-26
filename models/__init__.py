@@ -7,6 +7,7 @@ from .dish_ingredient import DishIngredient
 from .order import Order
 from .order_dish import OrderDish
 from .tariff import Tariff
+from .menu_cycle import MenuCycle, MenuCycleDay
 
 __all__ = [
     "User",
@@ -18,4 +19,6 @@ __all__ = [
     "Order",
     "OrderDish",
     "Tariff",
+    "MenuCycle",
+    "MenuCycleDay",
 ]

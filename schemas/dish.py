@@ -2,14 +2,21 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-from models.dish import MealType
+from models.dish import MealSlot
 from schemas.ingredient import IngredientRead
+
+
+class RecipeStep(BaseModel):
+    order: int
+    description: str
+    durationMin: Optional[int] = None
 
 
 class DishIngredientBase(BaseModel):
     ingredient_id: int
-    quantity: float
+    quantity: float = 0
     unit: Optional[str] = None
+    amounts: dict[str, float] = {}
 
 
 class DishIngredientCreate(DishIngredientBase):
@@ -19,6 +26,7 @@ class DishIngredientCreate(DishIngredientBase):
 class DishIngredientUpdate(BaseModel):
     quantity: Optional[float] = None
     unit: Optional[str] = None
+    amounts: Optional[dict[str, float]] = None
 
 
 class DishIngredientRead(DishIngredientBase):
@@ -31,9 +39,12 @@ class DishIngredientRead(DishIngredientBase):
 
 class DishBase(BaseModel):
     name: str
-    meal_type: Optional[MealType] = None
+    slot: MealSlot = MealSlot.lunch
     description: Optional[str] = None
-    calories: Optional[float] = None
+    kcal_by_tariff: dict[str, int] = {}
+    allergens: list[str] = []
+    steps: list[RecipeStep] = []
+    cook_time_min: int = 0
 
 
 class DishCreate(DishBase):
@@ -42,9 +53,12 @@ class DishCreate(DishBase):
 
 class DishUpdate(BaseModel):
     name: Optional[str] = None
-    meal_type: Optional[MealType] = None
+    slot: Optional[MealSlot] = None
     description: Optional[str] = None
-    calories: Optional[float] = None
+    kcal_by_tariff: Optional[dict[str, int]] = None
+    allergens: Optional[list[str]] = None
+    steps: Optional[list[RecipeStep]] = None
+    cook_time_min: Optional[int] = None
     is_active: Optional[bool] = None
 
 

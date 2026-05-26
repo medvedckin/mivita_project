@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from dependencies.auth import require_role
-from models.dish import Dish
+from models.dish import Dish, MealSlot
 from models.dish_ingredient import DishIngredient
 from models.ingredient import Ingredient
 from models.user import UserRole
@@ -34,19 +34,17 @@ def _get_dish_or_404(dish_id: int, db: Session) -> Dish:
 @router.get("", response_model=list[DishRead])
 def list_dishes(
     search: Optional[str] = Query(None),
-    meal_type: Optional[str] = Query(None),
+    slot: Optional[MealSlot] = Query(None),
     skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=500),
+    limit: int = Query(200, ge=1, le=500),
     db: Session = Depends(get_db),
-    current_user=Depends(
-        require_role(UserRole.admin, UserRole.partner, UserRole.cook)
-    ),
+    _=Depends(require_role(UserRole.admin, UserRole.partner, UserRole.kitchen)),
 ):
     query = db.query(Dish)
     if search:
         query = query.filter(Dish.name.ilike(f"%{search}%"))
-    if meal_type:
-        query = query.filter(Dish.meal_type == meal_type)
+    if slot:
+        query = query.filter(Dish.slot == slot)
     return query.order_by(Dish.name).offset(skip).limit(limit).all()
 
 
@@ -54,9 +52,7 @@ def list_dishes(
 def get_dish(
     dish_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(
-        require_role(UserRole.admin, UserRole.partner, UserRole.cook)
-    ),
+    _=Depends(require_role(UserRole.admin, UserRole.partner, UserRole.kitchen)),
 ):
     return _get_dish_or_404(dish_id, db)
 
@@ -65,7 +61,7 @@ def get_dish(
 def create_dish(
     data: DishCreate,
     db: Session = Depends(get_db),
-    current_user=Depends(require_role(UserRole.admin)),
+    _=Depends(require_role(UserRole.admin)),
 ):
     existing = db.query(Dish).filter(Dish.name == data.name).first()
     if existing:
@@ -73,7 +69,9 @@ def create_dish(
             status_code=status.HTTP_409_CONFLICT,
             detail="Dish with this name already exists",
         )
-    dish = Dish(**data.model_dump())
+    payload = data.model_dump()
+    payload["steps"] = [s if isinstance(s, dict) else s.model_dump() for s in payload.get("steps", [])]
+    dish = Dish(**payload)
     db.add(dish)
     db.commit()
     db.refresh(dish)
@@ -85,10 +83,13 @@ def update_dish(
     dish_id: int,
     data: DishUpdate,
     db: Session = Depends(get_db),
-    current_user=Depends(require_role(UserRole.admin)),
+    _=Depends(require_role(UserRole.admin)),
 ):
     dish = _get_dish_or_404(dish_id, db)
-    for key, value in data.model_dump(exclude_unset=True).items():
+    payload = data.model_dump(exclude_unset=True)
+    if "steps" in payload and payload["steps"] is not None:
+        payload["steps"] = [s if isinstance(s, dict) else s.model_dump() for s in payload["steps"]]
+    for key, value in payload.items():
         setattr(dish, key, value)
     db.commit()
     db.refresh(dish)
@@ -99,15 +100,14 @@ def update_dish(
 def delete_dish(
     dish_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(require_role(UserRole.admin)),
+    _=Depends(require_role(UserRole.admin)),
 ):
     dish = _get_dish_or_404(dish_id, db)
     db.delete(dish)
     db.commit()
 
 
-# Dish Ingredients
-
+# ---------- dish ingredients ----------
 
 @router.get(
     "/{dish_id}/ingredients",
@@ -116,9 +116,7 @@ def delete_dish(
 def list_dish_ingredients(
     dish_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(
-        require_role(UserRole.admin, UserRole.partner, UserRole.cook)
-    ),
+    _=Depends(require_role(UserRole.admin, UserRole.partner, UserRole.kitchen)),
 ):
     _get_dish_or_404(dish_id, db)
     return (
@@ -137,7 +135,7 @@ def add_dish_ingredient(
     dish_id: int,
     data: DishIngredientCreate,
     db: Session = Depends(get_db),
-    current_user=Depends(require_role(UserRole.admin)),
+    _=Depends(require_role(UserRole.admin)),
 ):
     _get_dish_or_404(dish_id, db)
     ingredient = (
@@ -177,7 +175,7 @@ def update_dish_ingredient(
     ingredient_id: int,
     data: DishIngredientUpdate,
     db: Session = Depends(get_db),
-    current_user=Depends(require_role(UserRole.admin)),
+    _=Depends(require_role(UserRole.admin)),
 ):
     di = (
         db.query(DishIngredient)
@@ -207,7 +205,7 @@ def remove_dish_ingredient(
     dish_id: int,
     ingredient_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(require_role(UserRole.admin)),
+    _=Depends(require_role(UserRole.admin)),
 ):
     di = (
         db.query(DishIngredient)
