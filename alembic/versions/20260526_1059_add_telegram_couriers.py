@@ -23,7 +23,7 @@ def upgrade() -> None:
     op.create_table('telegram_couriers',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('courier_id', sa.Integer(), nullable=False),
-    sa.Column('telegram_chat_id', sa.Integer(), nullable=False),
+    sa.Column('telegram_chat_id', sa.BigInteger(), nullable=False),
     sa.Column('phone', sa.String(length=20), nullable=False),
     sa.Column('is_verified', sa.Boolean(), nullable=False),
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
